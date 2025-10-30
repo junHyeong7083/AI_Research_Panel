@@ -51,6 +51,10 @@ public class PersonaGenerator : MonoBehaviour
     [SerializeField] private Transform contentParent;        // ScrollView의 Content
     [SerializeField] private GameObject personaCardPrefab;   // 페르소나 카드 프리팹
 
+    [SerializeField] private GameObject LoadingPanel; // 로딩씬 빠른구현용 패널
+
+    private void Awake() => LoadingPanel.gameObject.SetActive(true);
+
     void Start()
     {
         openAIApiKey = keyConfig.openAIApiKey;
@@ -165,6 +169,7 @@ Each persona should include:
                 card.transform.Find("Occupation").GetComponent<Text>().text = p.occupation;
                 card.transform.Find("Description").GetComponent<Text>().text = p.description;
             }
+            LoadingPanel.gameObject.SetActive(false);
         }
         catch (System.Exception e)
         {
