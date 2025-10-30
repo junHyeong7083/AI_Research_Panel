@@ -298,6 +298,10 @@ MonoBehaviour:
       m_Image: {fileID: 0}
     - m_Text: 300
       m_Image: {fileID: 0}
+    - m_Text: 10
+      m_Image: {fileID: 0}
+    - m_Text: 1
+      m_Image: {fileID: 0}
   m_OnValueChanged:
     m_PersistentCalls:
       m_Calls: []
@@ -3557,6 +3561,13 @@ MonoBehaviour:
   method: 
   sampleSize: 
   screeningRule: 
+  maleRatio: 0
+  femaleRatio: 0
+  age10Ratio: 0
+  age20Ratio: 0
+  age30Ratio: 0
+  age40Ratio: 0
+  age50Ratio: 0
 --- !u!4 &963479022
 Transform:
   m_ObjectHideFlags: 0

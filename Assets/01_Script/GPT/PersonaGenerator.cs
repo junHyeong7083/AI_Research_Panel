@@ -1,13 +1,11 @@
 ﻿using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Networking;
 using UnityEngine.UI;
-using TMPro;
-using System.Text.RegularExpressions;
 using Newtonsoft.Json;
-using System.Collections.Generic;
+using Newtonsoft.Json.Linq;
 
-// ------------------- 데이터 구조 -------------------
 [System.Serializable]
 public class PersonaData
 {
@@ -21,10 +19,9 @@ public class PersonaData
 [System.Serializable]
 public class PersonaListWrapper
 {
-    public PersonaData[] personas;
+    public List<PersonaData> personas;
 }
 
-// ✅ GPT 요청용 구조 (JsonUtility 직렬화용)
 [System.Serializable]
 public class Message
 {
@@ -36,29 +33,32 @@ public class Message
 public class ChatRequest
 {
     public string model;
-    public Message[] messages;
+    public List<Message> messages;
     public float temperature;
 }
 
-// ------------------- 메인 스크립트 -------------------
 public class PersonaGenerator : MonoBehaviour
 {
     [Header("GPT API Settings")]
-    [SerializeField] private OpenAIKeyConfig keyConfig;
-    private string openAIApiKey;
-    private string apiUrl = "https://api.openai.com/v1/chat/completions";
+    [SerializeField] private OpenAIKeyConfig keyConfig; // ✅ ScriptableObject 참조
 
     [Header("UI")]
-    [SerializeField] private Transform contentParent;        // ScrollView의 Content
-    [SerializeField] private GameObject personaCardPrefab;   // 페르소나 카드 프리팹
+    [SerializeField] private Transform contentParent;
+    [SerializeField] private GameObject personaCardPrefab;
+    [SerializeField] private GameObject LoadingPanel;
 
-    [SerializeField] private GameObject LoadingPanel; // 로딩씬 빠른구현용 패널
-
-    private void Awake() => LoadingPanel.gameObject.SetActive(true);
+    private List<PersonaData> generatedPersonas = new List<PersonaData>();
+    public List<PersonaData> GetGeneratedPersonas() => generatedPersonas;
+    private void Awake() => LoadingPanel.SetActive(true);
 
     void Start()
     {
-        openAIApiKey = keyConfig.openAIApiKey;
+        if (keyConfig == null)
+        {
+            Debug.LogError("❌ OpenAIKeyConfig가 연결되지 않았습니다!");
+            return;
+        }
+
         StartCoroutine(GeneratePersonas());
     }
 
@@ -67,30 +67,29 @@ public class PersonaGenerator : MonoBehaviour
         var sm = SelectionManager.instance;
         int sampleCount = int.Parse(sm.sampleSize);
 
-        // 🎯 프롬프트 생성
         string prompt = BuildPrompt(sm, sampleCount);
 
-        // ✅ 구조화된 요청 생성
         ChatRequest chatReq = new ChatRequest
         {
             model = "gpt-3.5-turbo",
             temperature = 0.8f,
-            messages = new Message[]
+            messages = new List<Message>
             {
                 new Message { role = "user", content = prompt }
             }
         };
 
-        string bodyJson = JsonUtility.ToJson(chatReq);
-        Debug.Log("🟡 [Request JSON]\n" + bodyJson); // 디버깅용
+        string bodyJson = JsonConvert.SerializeObject(chatReq);
+        Debug.Log("🟡 [Request JSON]\n" + bodyJson);
 
-        using (UnityWebRequest req = new UnityWebRequest(apiUrl, "POST"))
+        // ✅ keyConfig에서 API Key, URL 가져옴
+        using (UnityWebRequest req = new UnityWebRequest(keyConfig.apiUrl, "POST"))
         {
             byte[] bodyRaw = System.Text.Encoding.UTF8.GetBytes(bodyJson);
             req.uploadHandler = new UploadHandlerRaw(bodyRaw);
             req.downloadHandler = new DownloadHandlerBuffer();
             req.SetRequestHeader("Content-Type", "application/json");
-            req.SetRequestHeader("Authorization", "Bearer " + openAIApiKey);
+            req.SetRequestHeader("Authorization", "Bearer " + keyConfig.openAIApiKey);
 
             yield return req.SendWebRequest();
 
@@ -117,10 +116,10 @@ Each persona should include:
 - name
 - gender (maintain roughly {sm.femaleRatio}% female and {sm.maleRatio}% male)
 - age (distribute approximately according to: 
-10s: {sm.age10Ratio}%,
-20s: {sm.age20Ratio}%,
-30s: {sm.age30Ratio}%,
-40s: {sm.age40Ratio}%,
+10s: {sm.age10Ratio}%, 
+20s: {sm.age20Ratio}%, 
+30s: {sm.age30Ratio}%, 
+40s: {sm.age40Ratio}%, 
 50s: {sm.age50Ratio}%)
 - occupation (relevant to {sm.method})
 - a short 2~3 sentence description.
@@ -134,32 +133,25 @@ Each persona should include:
 }}";
     }
 
-    // ✅ Newtonsoft.Json 버전
     void ParseAndCreatePersonas(string responseJson)
     {
         try
         {
             string content = ExtractContentFromResponse(responseJson);
-            Debug.Log("📦 Extracted JSON:\n" + content);
+            Debug.Log("📦 Extracted JSON 최종 정제:\n" + content);
 
-            // 🧹 문자열 정리
-            content = content.Trim();
-            content = content.Replace("```json", "").Replace("```", "");
-
-            // ✅ Newtonsoft로 안전하게 파싱
             PersonaListWrapper personaList = JsonConvert.DeserializeObject<PersonaListWrapper>(content);
 
             if (personaList == null || personaList.personas == null)
             {
-                Debug.LogError("❌ JSON 파싱 실패 (구조 불일치 또는 빈 데이터)");
-                Debug.LogError("💬 Raw JSON:\n" + content);
+                Debug.LogError("❌ JSON 파싱 실패 (응답 형식 불일치)");
                 return;
             }
 
-            Debug.Log($"✅ 파싱 성공: {personaList.personas.Length}명 생성됨");
+            generatedPersonas = new List<PersonaData>(personaList.personas);
+            Debug.Log($"✅ 파싱 성공: {generatedPersonas.Count}명 생성됨");
 
-            // 🧩 UI 카드 생성
-            foreach (var p in personaList.personas)
+            foreach (var p in generatedPersonas)
             {
                 GameObject card = Instantiate(personaCardPrefab, contentParent);
                 card.transform.localScale = Vector3.one;
@@ -170,7 +162,7 @@ Each persona should include:
                 card.transform.Find("Occupation").GetComponent<Text>().text = p.occupation;
                 card.transform.Find("Description").GetComponent<Text>().text = p.description;
             }
-            LoadingPanel.gameObject.SetActive(false);
+            LoadingPanel.SetActive(false);
         }
         catch (System.Exception e)
         {
@@ -178,49 +170,27 @@ Each persona should include:
         }
     }
 
-    // ✅ GPT 응답에서 JSON 본문 추출
     string ExtractContentFromResponse(string fullJson)
     {
-        int startIndex = fullJson.IndexOf("\"content\":");
-        if (startIndex == -1)
+        try
         {
-            Debug.LogError("❌ content 필드 없음");
+            JObject root = JObject.Parse(fullJson);
+            string content = root["choices"]?[0]?["message"]?["content"]?.ToString();
+
+            if (string.IsNullOrEmpty(content))
+            {
+                Debug.LogError("❌ content 추출 실패");
+                return "";
+            }
+
+            content = content.Trim();
+            content = content.Replace("```json", "").Replace("```", "");
+            return content;
+        }
+        catch (System.Exception e)
+        {
+            Debug.LogError("❌ ExtractContent 실패: " + e.Message);
             return "";
         }
-
-        string sub = fullJson.Substring(startIndex);
-
-        // 📌 JSON 본문 ({ ... }) 추출
-        Match match = Regex.Match(sub, "\\{[\\s\\S]*?\\}\\s*(?=\"|\\})", RegexOptions.Singleline);
-        if (!match.Success)
-        {
-            Debug.LogError("❌ JSON 블록을 찾을 수 없음");
-            return "";
-        }
-
-        string extracted = match.Value;
-
-        // 🧹 불필요한 이스케이프 제거
-        extracted = extracted
-            .Replace("\\n", "")
-            .Replace("\\r", "")
-            .Replace("\\t", "")
-            .Replace("\\\"", "\"")
-            .Replace("```json", "")
-            .Replace("```", "")
-            .Trim()
-            .TrimStart('"')
-            .TrimEnd('"');
-
-        Debug.Log("📦 Extracted JSON 최종 정제:\n" + extracted);
-        return extracted;
-    }
-
-    // PersonaGenerator 클래스 내부에 추가
-    private List<PersonaData> generatedPersonas = new List<PersonaData>();
-
-    public List<PersonaData> GetGeneratedPersonas()
-    {
-        return generatedPersonas;
     }
 }

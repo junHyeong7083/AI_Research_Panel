@@ -1,0 +1,164 @@
+[
+  {
+    "id": "SQ1",
+    "question": "귀하의 성별은 어떻게 되십니까?",
+    "type": "text",
+    "options": []
+  },
+  {
+    "id": "SQ2",
+    "question": "귀하의 연령은 어떻게 되십니까? 출생연도를 입력해 주십시오.",
+    "type": "text",
+    "options": []
+  },
+  {
+    "id": "SQ3",
+    "question": "귀하께서 최근 1개월 이내 이용경험이 있는 서비스를 모두 선택하여 주십시오.",
+    "type": "text",
+    "options": []
+  },
+  {
+    "id": "SQ4",
+    "question": "귀하께서는 유튜브를 통해 한 번 이상 시청한경험이 있는 카테고리를 모두 선택해 주십시오.",
+    "type": "text",
+    "options": []
+  },
+  {
+    "id": "SQ5",
+    "question": "귀하께서는 정치·시사 유튜브 영상을 한 번 이상 시청한 경험이 있다고 응답하셨습니다. 언제 시청하셨는지 최근 기준으로 응답해 주시기 바랍니다.",
+    "type": "text",
+    "options": []
+  },
+  {
+    "id": "SQ6",
+    "question": "정치·시사 유튜브 채널을 구분했을 때 귀하는 최근 6개월간 각 유형의 채널을 어느 정도 이용하십니까?",
+    "type": "table",
+    "options": [],
+    "table": {
+      "columns": [],
+      "rows": []
+    }
+  },
+  {
+    "id": "SQ7",
+    "question": "정치·시사 유튜브 채널을 구분했을 때 귀하는 정치·시사 유튜브 영상을 일주일 평균 며칠이나 시청하십니까?",
+    "type": "table",
+    "options": [],
+    "table": {
+      "columns": [],
+      "rows": []
+    }
+  },
+  {
+    "id": "Q1",
+    "question": "정치·시사 유튜브 채널을 구분했을 때 귀하는 정치·시사 유튜브 영상을 하루 평균 몇 시간 정도를 시청하십니까?",
+    "type": "table",
+    "options": [],
+    "table": {
+      "columns": [],
+      "rows": []
+    }
+  },
+  {
+    "id": "Q2",
+    "question": "정치·시사 유튜브 채널을 구분했을 때 귀하가 정기적으로 시청하는 정치·시사 유튜브 채널은 약 몇 개입니까?",
+    "type": "table",
+    "options": [],
+    "table": {
+      "columns": [],
+      "rows": []
+    }
+  },
+  {
+    "id": "Q3",
+    "question": "정치·시사 유튜브 영상을 발견하시는 경로는 어떻게 되십니까?",
+    "type": "text",
+    "options": []
+  },
+  {
+    "id": "Q4",
+    "question": "정치·시사 유튜브 영상을 이용할 때 다음과 같은 기능을 어느 정도 이용하십니까?",
+    "type": "table",
+    "options": [],
+    "table": {
+      "columns": [],
+      "rows": []
+    }
+  },
+  {
+    "id": "Q5",
+    "question": "미디어 이용 행태와 관련된 질문입니다. 귀하께서는 아래 문항에 대해 동의 정도를 솔직히 표시해 주시길 바랍니다.",
+    "type": "table",
+    "options": [],
+    "table": {
+      "columns": [],
+      "rows": []
+    }
+  },
+  {
+    "id": "Q6",
+    "question": "이용 만족도와 관련된 질문입니다. 귀하께서는 아래 문항에 대해 동의 정도를 솔직히 표시해 주시길 바랍니다.",
+    "type": "table",
+    "options": [],
+    "table": {
+      "columns": [],
+      "rows": []
+    }
+  },
+  {
+    "id": "Q7",
+    "question": "리터러시와 관련된 질문입니다. 귀하께서는 아래 문항에 대해 동의 정도를 솔직히 표시해 주시길 바랍니다.",
+    "type": "table",
+    "options": [],
+    "table": {
+      "columns": [],
+      "rows": []
+    }
+  },
+  {
+    "id": "Q8",
+    "question": "유튜브 시청 후기와 관련된 질문입니다. 귀하께서는 아래 문항에 대해 동의 정도를 솔직히 표시해 주시길 바랍니다.",
+    "type": "table",
+    "options": [],
+    "table": {
+      "columns": [],
+      "rows": []
+    }
+  },
+  {
+    "id": "Q9",
+    "question": "본인의 정치적 성향은 어디에 가깝습니까?",
+    "type": "text",
+    "options": []
+  },
+  {
+    "id": "Q10",
+    "question": "평소 정치 및 사회적 이슈에 얼마나 관심이 있습니까?",
+    "type": "text",
+    "options": []
+  },
+  {
+    "id": "DQ1",
+    "question": "귀하의 현재 거주 지역은 다음 중 어디입니까?",
+    "type": "text",
+    "options": []
+  },
+  {
+    "id": "DQ2",
+    "question": "귀하의 최종 학력은 무엇입니까?",
+    "type": "text",
+    "options": []
+  },
+  {
+    "id": "DQ5",
+    "question": "귀하 가구의 월 평균 소득은 얼마입니까?",
+    "type": "text",
+    "options": []
+  },
+  {
+    "id": "DQ6",
+    "question": "마지막으로 한국 사회에서 정치/시사 유튜브 동영상의 영향력과 관련하여 의견이 있으시면 편하게 말씀해주시면 감사하겠습니다.",
+    "type": "text",
+    "options": []
+  }
+]
