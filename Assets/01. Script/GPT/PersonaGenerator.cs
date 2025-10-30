@@ -5,6 +5,7 @@ using UnityEngine.UI;
 using TMPro;
 using System.Text.RegularExpressions;
 using Newtonsoft.Json;
+using System.Collections.Generic;
 
 // ------------------- 데이터 구조 -------------------
 [System.Serializable]
@@ -213,5 +214,13 @@ Each persona should include:
 
         Debug.Log("📦 Extracted JSON 최종 정제:\n" + extracted);
         return extracted;
+    }
+
+    // PersonaGenerator 클래스 내부에 추가
+    private List<PersonaData> generatedPersonas = new List<PersonaData>();
+
+    public List<PersonaData> GetGeneratedPersonas()
+    {
+        return generatedPersonas;
     }
 }
