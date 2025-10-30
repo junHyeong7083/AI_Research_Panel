@@ -37,6 +37,8 @@ public class ButtonEvent : MonoBehaviour
             SelectionManager.instance.method = method;
             SelectionManager.instance.sampleSize = sampleSize;
             SelectionManager.instance.screeningRule = rule;
+
+            // Gender
             SelectionManager.instance.maleRatio = maleRatio;
             SelectionManager.instance.femaleRatio = femaleRatio;
 
