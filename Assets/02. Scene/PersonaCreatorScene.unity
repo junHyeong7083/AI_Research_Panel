@@ -1608,7 +1608,6 @@ GameObject:
   - component: {fileID: 1621664078}
   - component: {fileID: 1621664077}
   - component: {fileID: 1621664079}
-  - component: {fileID: 1621664080}
   m_Layer: 0
   m_Name: PDF
   m_TagString: Untagged
@@ -1651,7 +1650,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1621664076}
-  m_Enabled: 0
+  m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 062fc0737e612f14e81d0949e6ad1c93, type: 3}
   m_Name: 
@@ -1660,20 +1659,6 @@ MonoBehaviour:
   personaGenerator: {fileID: 1511043528}
   pythonExePath: C:\Users\user\Git\AI_Research_Panel\Assets\01_Script\Python\.venv\Scripts\python.exe
   scriptPath: 'C:\Users\user\Git\AI_Research_Panel\Assets\01_Script\Python\survey_parser.py '
---- !u!114 &1621664080
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1621664076}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f85d7b2f454f22f409aab5b8555c9e60, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  jsonFileName: survey_final.json
-  Questions: []
 --- !u!1 &1656137105
 GameObject:
   m_ObjectHideFlags: 0
