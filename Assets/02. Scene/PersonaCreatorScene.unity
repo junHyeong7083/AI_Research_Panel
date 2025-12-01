@@ -215,7 +215,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &127730763
 RectTransform:
   m_ObjectHideFlags: 0
@@ -1658,7 +1658,7 @@ MonoBehaviour:
   keyConfig: {fileID: 11400000, guid: fbb3e68c4d01ee24caad9f872d2ee30f, type: 2}
   personaGenerator: {fileID: 1511043528}
   pythonExePath: C:\Users\user\Git\AI_Research_Panel\Assets\01_Script\Python\.venv\Scripts\python.exe
-  scriptPath: 'C:\Users\user\Git\AI_Research_Panel\Assets\01_Script\Python\survey_parser.py '
+  pythonScriptPath: C:\Users\user\Git\AI_Research_Panel\Assets\01_Script\Python\survey_parser.py
 --- !u!1 &1656137105
 GameObject:
   m_ObjectHideFlags: 0

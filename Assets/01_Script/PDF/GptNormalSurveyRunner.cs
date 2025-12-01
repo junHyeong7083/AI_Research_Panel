@@ -1,4 +1,5 @@
-// GptPersonaSurveyRunner.cs
+// GptNormalSurveyRunner.cs
+// 페르소나 없이 일반 GPT로 설문에 응답하는 러너
 
 using System.Collections.Generic;
 using System.Linq;
@@ -10,56 +11,50 @@ using UnityEngine.Networking;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
-public class GptPersonaSurveyRunner
+public class GptNormalSurveyRunner
 {
     private readonly OpenAIKeyConfig _keyConfig;
     private const int ChunkSize = 25;
-    private string _csvPath;
 
-    public GptPersonaSurveyRunner(OpenAIKeyConfig keyConfig)
+    public GptNormalSurveyRunner(OpenAIKeyConfig keyConfig)
     {
         _keyConfig = keyConfig;
     }
 
-    public async Task RunMultipleAsync(List<PersonaData> personas, List<QuestionFlattener.FlattenedQuestion> flat, int repeatCount)
+    public async Task RunMultipleAsync(List<QuestionFlattener.FlattenedQuestion> flatQuestions, int repeatCount)
     {
         string folder = Path.Combine(Application.persistentDataPath, "SurveyExports");
         if (!Directory.Exists(folder))
             Directory.CreateDirectory(folder);
 
-        _csvPath = Path.Combine(folder, "persona_all_results.csv");
+        string csvPath = Path.Combine(folder, "normal_gpt_all_results.csv");
 
         // 파일 초기화 (새로 시작)
-        File.WriteAllText(_csvPath, "", Encoding.UTF8);
+        File.WriteAllText(csvPath, "", Encoding.UTF8);
 
         for (int run = 1; run <= repeatCount; run++)
         {
-            Debug.Log($"[페르소나] === {run}/{repeatCount} 회차 시작 ===");
+            Debug.Log($"[일반 GPT] {run}/{repeatCount} 회차 시작");
 
-            foreach (var p in personas)
-            {
-                Debug.Log($"[페르소나] {p.name} 응답 중... (회차 {run})");
-                var answers = await RunOnceAsync(p, flat);
+            var answers = await RunOnceAsync(flatQuestions);
 
-                // CSV에 append
-                string header = $"{p.name}_Run{run}";
-                AppendToCsv(header, flat, answers);
-            }
+            // CSV에 append
+            AppendToCsv(csvPath, $"일반GPT_Run{run}", flatQuestions, answers);
 
-            Debug.Log($"[페르소나] === {run}/{repeatCount} 회차 완료 ===");
+            Debug.Log($"[일반 GPT] {run}/{repeatCount} 회차 완료");
         }
 
-        Debug.Log($"[페르소나] 전체 {repeatCount}회 x {personas.Count}명 완료. 저장됨: {_csvPath}");
+        Debug.Log($"[일반 GPT] 전체 {repeatCount}회 완료. 저장됨: {csvPath}");
     }
 
-    private async Task<Dictionary<string, string>> RunOnceAsync(PersonaData persona, List<QuestionFlattener.FlattenedQuestion> flatQuestions)
+    private async Task<Dictionary<string, string>> RunOnceAsync(List<QuestionFlattener.FlattenedQuestion> flatQuestions)
     {
         var merged = new Dictionary<string, string>();
 
         for (int i = 0; i < flatQuestions.Count; i += ChunkSize)
         {
             var chunk = flatQuestions.Skip(i).Take(ChunkSize).ToList();
-            var chunkObj = await AskOneChunk(persona, chunk);
+            var chunkObj = await AskOneChunk(chunk);
             if (chunkObj == null) continue;
 
             var arr = chunkObj["answers"] as JArray;
@@ -83,7 +78,7 @@ public class GptPersonaSurveyRunner
         return merged;
     }
 
-    private void AppendToCsv(string header, List<QuestionFlattener.FlattenedQuestion> flatQuestions, Dictionary<string, string> answers)
+    private void AppendToCsv(string path, string header, List<QuestionFlattener.FlattenedQuestion> flatQuestions, Dictionary<string, string> answers)
     {
         var sb = new StringBuilder();
 
@@ -101,7 +96,7 @@ public class GptPersonaSurveyRunner
 
         sb.AppendLine(); // 빈 줄로 구분
 
-        File.AppendAllText(_csvPath, sb.ToString(), Encoding.UTF8);
+        File.AppendAllText(path, sb.ToString(), Encoding.UTF8);
     }
 
     private string EscapeCsvField(string field)
@@ -114,7 +109,7 @@ public class GptPersonaSurveyRunner
         return field;
     }
 
-    private async Task<JObject> AskOneChunk(PersonaData persona, List<QuestionFlattener.FlattenedQuestion> chunk)
+    private async Task<JObject> AskOneChunk(List<QuestionFlattener.FlattenedQuestion> chunk)
     {
         var qSchema = chunk.Select(q => new
         {
@@ -125,7 +120,7 @@ public class GptPersonaSurveyRunner
         }).ToList();
 
         string qSchemaJson = JsonConvert.SerializeObject(qSchema, Formatting.None);
-        string prompt = BuildPersonaPrompt(persona, qSchemaJson, chunk.Count);
+        string prompt = BuildNormalPrompt(qSchemaJson, chunk.Count);
 
         var reqObj = new
         {
@@ -148,7 +143,7 @@ public class GptPersonaSurveyRunner
 
             if (req.result != UnityWebRequest.Result.Success)
             {
-                Debug.LogError($"[{persona.name}] chunk 요청 실패: {req.error}");
+                Debug.LogError($"[일반 GPT] chunk 요청 실패: {req.error}");
                 return null;
             }
 
@@ -191,27 +186,27 @@ public class GptPersonaSurveyRunner
 
                 return new JObject
                 {
-                    ["persona"] = persona.name,
+                    ["mode"] = "normal_gpt",
                     ["answers"] = finalArr
                 };
             }
             catch (System.Exception e)
             {
-                Debug.LogError($"[{persona.name}] chunk 파싱 실패: {e.Message}\n원본:\n{res}");
+                Debug.LogError($"[일반 GPT] chunk 파싱 실패: {e.Message}\n원본:\n{res}");
                 return null;
             }
         }
     }
 
-    private string BuildPersonaPrompt(PersonaData persona, string qSchemaJson, int questionCount)
+    private string BuildNormalPrompt(string qSchemaJson, int questionCount)
     {
         var sb = new StringBuilder();
-        sb.AppendLine($"너는 지금부터 '{persona.name}' 페르소나로 설문에 응답한다.");
-        sb.AppendLine($"나이: {persona.age}, 성별: {persona.gender}, 직업: {persona.occupation}");
+        sb.AppendLine("너는 설문조사에 응답하는 일반적인 응답자이다.");
+        sb.AppendLine("특별한 페르소나 없이, 일반적이고 중립적인 관점에서 설문에 답변해라.");
         sb.AppendLine();
         sb.AppendLine("아래는 반드시 답해야 하는 문항 목록이다.");
         sb.AppendLine("⚠️ 주의:");
-        sb.AppendLine("- 이미 표(table)는 C#에서 행 단위로 분리되어 있다.");
+        sb.AppendLine("- 이미 표(table)는 행 단위로 분리되어 있다.");
         sb.AppendLine("- 그러므로 'SQ6', 'Q4' 같은 부모 id 하나로 묶어서 답하면 안 된다.");
         sb.AppendLine("- 예: 'SQ6_1', 'SQ6_2', 'SQ6_3' 이 있으면 이 3개를 각각 따로 답해라.");
         sb.AppendLine("- 내가 준 id 말고는 절대 만들지 마라.");
@@ -230,7 +225,7 @@ public class GptPersonaSurveyRunner
         sb.AppendLine();
         sb.AppendLine("출력 형식 예시:");
         sb.AppendLine("{");
-        sb.AppendLine($"  \"persona\": \"{persona.name}\",");
+        sb.AppendLine("  \"mode\": \"normal_gpt\",");
         sb.AppendLine("  \"answers\": [");
         sb.AppendLine("    { \"id\": \"(받은 id1)\", \"answer\": \"(해당 id1의 답)\" },");
         sb.AppendLine("    { \"id\": \"(받은 id2)\", \"answer\": \"(해당 id2의 답)\" }");

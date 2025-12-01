@@ -1,52 +1,74 @@
-using System.Diagnostics;
+ï»¿using System.Diagnostics;
 using System.Text;
 using UnityEngine;
 
-/// <summary>
-/// ÆÄÀÌ½ã ½ÇÇàÇØ¼­ PDF ¡æ ÆäÀÌÁö JSON »Ì¾Æ¿À´Â ¿ªÇÒ¸¸ ´ã´ç
-/// À¯´ÏÆ¼¿¡¼­ Á÷Á¢ PDF ÆÄ½Ì ¾È ÇÏ°í, ¿ÜºÎ ÆÄÀÌ½ã¿¡ ¸Ã±â´Â ±¸Á¶
-/// </summary>
 public class PythonPdfExtractor
 {
-    private readonly string _pythonExePath;  // ½ÇÁ¦ python.exe °æ·Î
-    private readonly string _scriptPath;     // ¿ì¸®°¡ ¸¸µç survey_parser.py °æ·Î
+    private readonly string _pythonExe;
+    private readonly string _scriptPath;
 
-    public PythonPdfExtractor(string pythonExePath, string scriptPath)
+    public PythonPdfExtractor(string pythonExe, string scriptPath)
     {
-        _pythonExePath = pythonExePath;
+        _pythonExe = pythonExe;
         _scriptPath = scriptPath;
     }
 
-    /// <summary>
-    /// PDF °æ·Î¸¦ ³Ñ±â¸é ÆÄÀÌ½ãÀ» µ¹·Á¼­ JSON ¹®ÀÚ¿­À» ¸®ÅÏÇÔ
-    /// </summary>
-    public string Extract(string pdfPath)
+    public string Run(string pdfPath)
     {
+        // 1) ì‚¬ì „ ì²´í¬
+        if (!System.IO.File.Exists(_pythonExe))
+        {
+            UnityEngine.Debug.LogError($"ğŸ Python exe ì—†ìŒ: {_pythonExe}");
+            return null;
+        }
+        if (!System.IO.File.Exists(_scriptPath))
+        {
+            UnityEngine.Debug.LogError($"ğŸ Python ìŠ¤í¬ë¦½íŠ¸ ì—†ìŒ: {_scriptPath}");
+            return null;
+        }
+        if (!System.IO.File.Exists(pdfPath))
+        {
+            UnityEngine.Debug.LogError($"ğŸ PDF ì—†ìŒ: {pdfPath}");
+            return null;
+        }
+
         var psi = new ProcessStartInfo
         {
-            FileName = _pythonExePath,
-            Arguments = $"\"{_scriptPath}\" \"{pdfPath}\"",  // "script.py" "C:\a.pdf"
+            FileName = _pythonExe,
+            Arguments = $"\"{_scriptPath}\" \"{pdfPath}\"",   // ê¼­ ë”°ì˜´í‘œ
             RedirectStandardOutput = true,
             RedirectStandardError = true,
-            UseShellExecute = false,    // ½© ¾È ¾²°í
-            CreateNoWindow = true,      // ÄÜ¼ÖÃ¢ ¾È ¶ç¿ò
+            UseShellExecute = false,
+            CreateNoWindow = true,
             StandardOutputEncoding = Encoding.UTF8,
-            StandardErrorEncoding = Encoding.UTF8,
+            StandardErrorEncoding = Encoding.UTF8
         };
 
-        // À©µµ¿ì¿¡¼­ ÇÑ±Û ±úÁü ¹æÁö
+        // ìœˆë„ìš°ì—ì„œ í•œê¸€ ê¹¨ì§ ë°©ì§€
         psi.EnvironmentVariables["PYTHONIOENCODING"] = "utf-8";
 
-        using (Process p = Process.Start(psi))
+        UnityEngine.Debug.Log($"ğŸ ì‹¤í–‰: {_pythonExe} {_scriptPath} {pdfPath}");
+
+        using (var p = Process.Start(psi))
         {
-            string output = p.StandardOutput.ReadToEnd(); // ÆÄÀÌ½ãÀÌ printÇÑ JSON
-            string error = p.StandardError.ReadToEnd();  // ÆÄÀÌ½ã ¿¡·¯·Î±×
-            p.WaitForExit(60000); // 60ÃÊ±îÁö ±â´Ù¸²
+            string stdout = p.StandardOutput.ReadToEnd();
+            string stderr = p.StandardError.ReadToEnd();
+            p.WaitForExit(60000);
 
-            if (!string.IsNullOrEmpty(error))
-                UnityEngine.Debug.LogWarning("Python STDERR:\n" + error);
+            if (!string.IsNullOrEmpty(stderr))
+            {
+                UnityEngine.Debug.LogError("ğŸ STDERR from python:\n" + stderr);
+            }
+            if (string.IsNullOrEmpty(stdout))
+            {
+                UnityEngine.Debug.LogError("ğŸ íŒŒì´ì¬ì´ stdoutì„ ë¹„ìš°ê³  ëë‚¬ìŒ (JSON ì•ˆ ë‚˜ì˜´)");
+            }
+            else
+            {
+                UnityEngine.Debug.Log("ğŸ STDOUT from python:\n" + stdout);
+            }
 
-            return output;
+            return stdout;
         }
     }
 }
