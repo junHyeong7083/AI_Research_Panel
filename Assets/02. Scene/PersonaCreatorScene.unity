@@ -1657,6 +1657,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   keyConfig: {fileID: 11400000, guid: fbb3e68c4d01ee24caad9f872d2ee30f, type: 2}
   personaGenerator: {fileID: 1511043528}
+  sampleSize: 0
   pythonExePath: C:\Users\user\Git\AI_Research_Panel\Assets\01_Script\Python\.venv\Scripts\python.exe
   pythonScriptPath: C:\Users\user\Git\AI_Research_Panel\Assets\01_Script\Python\survey_parser.py
 --- !u!1 &1656137105

@@ -15,33 +15,43 @@ public class GptNormalSurveyRunner
 {
     private readonly OpenAIKeyConfig _keyConfig;
     private const int ChunkSize = 25;
+    private const int MaxRetry = 3;
+    private const int RetryDelayMs = 2000;
 
     public GptNormalSurveyRunner(OpenAIKeyConfig keyConfig)
     {
         _keyConfig = keyConfig;
     }
 
-    public async Task RunMultipleAsync(List<QuestionFlattener.FlattenedQuestion> flatQuestions, int repeatCount)
+    public async Task RunMultipleAsync(List<QuestionFlattener.FlattenedQuestion> flatQuestions, int repeatCount, int version = 1)
     {
         string folder = Path.Combine(Application.persistentDataPath, "SurveyExports");
         if (!Directory.Exists(folder))
             Directory.CreateDirectory(folder);
 
-        string csvPath = Path.Combine(folder, "normal_gpt_all_results.csv");
+        string csvPath = Path.Combine(folder, $"normal_gpt_results_v{version}.csv");
 
         // 파일 초기화 (새로 시작)
         File.WriteAllText(csvPath, "", Encoding.UTF8);
 
         for (int run = 1; run <= repeatCount; run++)
         {
-            Debug.Log($"[일반 GPT] {run}/{repeatCount} 회차 시작");
+            try
+            {
+                Debug.Log($"[일반 GPT] {run}/{repeatCount} 회차 시작");
 
-            var answers = await RunOnceAsync(flatQuestions);
+                var answers = await RunOnceAsync(flatQuestions);
 
-            // CSV에 append
-            AppendToCsv(csvPath, $"일반GPT_Run{run}", flatQuestions, answers);
+                // CSV에 append
+                AppendToCsv(csvPath, $"일반GPT_Run{run}", flatQuestions, answers);
 
-            Debug.Log($"[일반 GPT] {run}/{repeatCount} 회차 완료");
+                Debug.Log($"[일반 GPT] {run}/{repeatCount} 회차 완료 ✓");
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogError($"[일반 GPT] {run}/{repeatCount} 회차 실패: {e.Message}");
+                // 에러가 나도 다음 회차 계속 진행
+            }
         }
 
         Debug.Log($"[일반 GPT] 전체 {repeatCount}회 완료. 저장됨: {csvPath}");
@@ -54,7 +64,23 @@ public class GptNormalSurveyRunner
         for (int i = 0; i < flatQuestions.Count; i += ChunkSize)
         {
             var chunk = flatQuestions.Skip(i).Take(ChunkSize).ToList();
-            var chunkObj = await AskOneChunk(chunk);
+
+            JObject chunkObj = null;
+            for (int retry = 0; retry < MaxRetry; retry++)
+            {
+                try
+                {
+                    chunkObj = await AskOneChunk(chunk);
+                    if (chunkObj != null) break;
+                }
+                catch (System.Exception e)
+                {
+                    Debug.LogWarning($"[일반 GPT] chunk 요청 실패 (시도 {retry + 1}/{MaxRetry}): {e.Message}");
+                    if (retry < MaxRetry - 1)
+                        await Task.Delay(RetryDelayMs);
+                }
+            }
+
             if (chunkObj == null) continue;
 
             var arr = chunkObj["answers"] as JArray;
@@ -96,7 +122,22 @@ public class GptNormalSurveyRunner
 
         sb.AppendLine(); // 빈 줄로 구분
 
-        File.AppendAllText(path, sb.ToString(), Encoding.UTF8);
+        // 파일 쓰기 재시도 (Sharing violation 대응)
+        for (int i = 0; i < 5; i++)
+        {
+            try
+            {
+                File.AppendAllText(path, sb.ToString(), Encoding.UTF8);
+                Debug.Log($"[일반 GPT] CSV 저장됨: {header}");
+                return;
+            }
+            catch (IOException)
+            {
+                if (i < 4)
+                    System.Threading.Thread.Sleep(500);
+            }
+        }
+        Debug.LogError($"[일반 GPT] CSV 저장 실패 (파일 사용 중): {header}");
     }
 
     private string EscapeCsvField(string field)
@@ -143,58 +184,55 @@ public class GptNormalSurveyRunner
 
             if (req.result != UnityWebRequest.Result.Success)
             {
-                Debug.LogError($"[일반 GPT] chunk 요청 실패: {req.error}");
-                return null;
+                throw new System.Exception($"HTTP 요청 실패: {req.error}");
             }
 
             string res = req.downloadHandler.text;
 
-            try
+            JObject root = JObject.Parse(res);
+            string content = root["choices"]?[0]?["message"]?["content"]?.ToString();
+
+            if (string.IsNullOrEmpty(content))
             {
-                JObject root = JObject.Parse(res);
-                string content = root["choices"]?[0]?["message"]?["content"]?.ToString();
-                string cleaned = JsonCleaner.CleanToPureJson(content);
-                var obj = JObject.Parse(cleaned);
-
-                var validIds = new HashSet<string>(chunk.Select(c => c.id));
-                var rawArr = obj["answers"] as JArray;
-                var finalArr = new JArray();
-
-                if (rawArr != null)
-                {
-                    foreach (var a in rawArr)
-                    {
-                        string id = a["id"]?.ToString();
-                        if (string.IsNullOrEmpty(id)) continue;
-                        if (!validIds.Contains(id)) continue;
-                        finalArr.Add(a);
-                    }
-                }
-
-                foreach (var q in chunk)
-                {
-                    bool exists = finalArr.Any(x => x["id"]?.ToString() == q.id);
-                    if (!exists)
-                    {
-                        finalArr.Add(new JObject
-                        {
-                            ["id"] = q.id,
-                            ["answer"] = ""
-                        });
-                    }
-                }
-
-                return new JObject
-                {
-                    ["mode"] = "normal_gpt",
-                    ["answers"] = finalArr
-                };
+                throw new System.Exception("GPT 응답이 비어있음");
             }
-            catch (System.Exception e)
+
+            string cleaned = JsonCleaner.CleanToPureJson(content);
+            var obj = JObject.Parse(cleaned);
+
+            var validIds = new HashSet<string>(chunk.Select(c => c.id));
+            var rawArr = obj["answers"] as JArray;
+            var finalArr = new JArray();
+
+            if (rawArr != null)
             {
-                Debug.LogError($"[일반 GPT] chunk 파싱 실패: {e.Message}\n원본:\n{res}");
-                return null;
+                foreach (var a in rawArr)
+                {
+                    string id = a["id"]?.ToString();
+                    if (string.IsNullOrEmpty(id)) continue;
+                    if (!validIds.Contains(id)) continue;
+                    finalArr.Add(a);
+                }
             }
+
+            foreach (var q in chunk)
+            {
+                bool exists = finalArr.Any(x => x["id"]?.ToString() == q.id);
+                if (!exists)
+                {
+                    finalArr.Add(new JObject
+                    {
+                        ["id"] = q.id,
+                        ["answer"] = ""
+                    });
+                }
+            }
+
+            return new JObject
+            {
+                ["mode"] = "normal_gpt",
+                ["answers"] = finalArr
+            };
         }
     }
 
